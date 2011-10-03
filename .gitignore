@@ -1,0 +1,10 @@
+syringe
+*.so
+*.o
+tags
+core
+
+*~
+.*~
+*.bak
+.*.swp
