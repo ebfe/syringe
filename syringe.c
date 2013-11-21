@@ -2,6 +2,7 @@
 #define _GNU_SOURCE /* getline() */
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
 #include <errno.h>
@@ -128,6 +129,22 @@ static int ptrace_poke(pid_t target, char *addr, char *data, size_t len) {
 	return 0;
 }
 
+static uintptr_t get_sp(struct user_regs_struct* regs) {
+#ifdef __x86_64__
+	return regs->rsp;
+#else /* x86 */
+	return regs->esp;
+#endif
+}
+
+static uintptr_t get_ip(struct user_regs_struct* regs) {
+#ifdef __x86_64__
+	return regs->rip;
+#else /* x86 */
+	return regs->eip;
+#endif
+}
+
 /* call dlopen(filename, flags) in target */
 static bool remote_dlopen(pid_t target, const char *filename, int flags) {
 	void *dlopen_addr;
@@ -161,7 +178,7 @@ static bool remote_dlopen(pid_t target, const char *filename, int flags) {
 	}
 
 	/* backup stack */
-	if (ptrace_peek(target, (char*)saved_regs.rsp, saved_stack, sizeof(saved_stack)) == -1) {
+	if (ptrace_peek(target, (char*) get_sp(&saved_regs), saved_stack, sizeof(saved_stack)) == -1) {
 		perror("ptrace_peek");
 		goto out;
 	}
@@ -184,15 +201,14 @@ static bool remote_dlopen(pid_t target, const char *filename, int flags) {
 	regs.rdi = regs.rsp + 512;
 	regs.rip = (size_t)dlopen_addr + 2;
 #else /* x86 */
-	w = regs->esp + 512;
+	w = regs.esp + 512;
 	memcpy(stack + sizeof(size_t), &w, sizeof(w));
 	w = flags;
 	memcpy(stack + (sizeof(size_t) * 2), &w, sizeof(w));
 	regs.eip = (size_t)dlopen_addr + 2;
 #endif
-	printf("%lx %lx %lx\n", regs.rsi, regs.rdi, regs.rip);
 
-	if (ptrace_poke(target, (char*)saved_regs.rsp, stack, sizeof(stack)) == -1) {
+	if (ptrace_poke(target, (char*) get_sp(&saved_regs), stack, sizeof(stack)) == -1) {
 		perror("ptrace_poke");
 		goto out;
 	}
@@ -220,10 +236,10 @@ static bool remote_dlopen(pid_t target, const char *filename, int flags) {
 		perror("ptrace getregs");
 		goto out;
 	}
-	printf("rip: %lx\n", regs.rip);
+	printf("ip: %tx\n", get_ip(&regs));
 
 	/* restore stack */
-	if (ptrace_poke(target, (char*)saved_regs.rsp, saved_stack, sizeof(saved_stack)) == -1) {
+	if (ptrace_poke(target, (char*)get_sp(&saved_regs), saved_stack, sizeof(saved_stack)) == -1) {
 		perror("ptrace_poke");
 		goto out;
 	}
