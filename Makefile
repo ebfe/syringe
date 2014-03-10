@@ -11,7 +11,7 @@ TARGETS = syringe helloworld.so
 all: $(TARGETS)
 
 syringe: syringe.o
-	$(CC) $(LDFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 helloworld.so: helloworld.c
 	$(CC) $(CFLAGS) -shared -fPIC -o $@ $^
