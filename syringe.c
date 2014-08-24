@@ -77,7 +77,15 @@ static void* libc_dlopen_addr(pid_t target) {
 	void *target_dlopen_sym;
 
 	base = libc_base(getpid());
+	if (!base) {
+		fprintf(stderr, "can't find libc base\n");
+		return 0;
+	}
 	target_base = libc_base(target);
+	if (!target_base) {
+		fprintf(stderr, "can't find target libc base\n");
+		return 0;
+	}
 
 	dlopen_sym = dlsym(NULL, "__libc_dlopen_mode");
 	target_dlopen_sym = (void*)((size_t)dlopen_sym - (size_t)base + (size_t)target_base);
@@ -154,6 +162,9 @@ static bool remote_dlopen(pid_t target, const char *filename, int flags) {
 	bool ret = false;
 
 	dlopen_addr = libc_dlopen_addr(target);
+	if (!dlopen_addr) {
+		return false;
+	}
 
 	/* attach */
 	if (ptrace(PTRACE_ATTACH, target, NULL, NULL) == -1) {
