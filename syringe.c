@@ -50,7 +50,7 @@ static void* libc_base(pid_t target) {
 
 	fmaps = fopen(maps_path, "r");
 	if (!fmaps) {
-		fprintf(stderr, "Failed to open: %s (%s)\n", maps_path, strerror(errno));
+		fprintf(stderr, "failed to open: %s (%s)\n", maps_path, strerror(errno));
 		return NULL;
 	}
 
@@ -96,9 +96,11 @@ static void* libc_dlopen_addr(pid_t target) {
 	dlopen_sym = dlsym(NULL, "__libc_dlopen_mode");
 	target_dlopen_sym = (void*)((size_t)dlopen_sym - (size_t)base + (size_t)target_base);
 
-	printf("base: %p dlopen: %p\n", base, dlopen_sym);
-	printf("remote_base: %p\n", target_base);
-	printf("target_dlopen: %p\n", target_dlopen_sym);
+	printf("base:   %p\n", base);
+	printf("dlopen: %p\n", dlopen_sym);
+	printf("target base:   %p\n", target_base);
+	printf("target dlopen: %p\n", target_dlopen_sym);
+
 	return target_dlopen_sym;
 }
 
@@ -276,27 +278,31 @@ out:
 
 static void usage(const char *cmd) {
 	printf("usage: %s <pid> <.so>\n", cmd);
-	exit(1);
 }
 
 int main(int argc, char *argv[]) {
 
 	pid_t pid;
 	char *so;
+	int ret = 0;
 
-	if (argc < 3)
+	if (argc < 3) {
 		usage(argv[0]);
+		return 1;
+	}
 
 	pid = atoi(argv[1]);
 	so = realpath(argv[2], NULL);
 
-	printf("%d %s\n", pid, so);
+	printf("injecting '%s' into %d\n", so, pid);
 
-	if (remote_dlopen(pid, so, RTLD_NOW))
+	if (remote_dlopen(pid, so, RTLD_NOW)) {
 		puts("OK");
-	else
+	} else {
 		puts("FAILED");
+		ret = 1;
+	}
 
 	free(so);
-	return 0;
+	return ret;
 }
