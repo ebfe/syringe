@@ -33,6 +33,12 @@ static void print_status(pid_t pid, int status) {
 	}
 }
 
+static bool is_libc(const char *file) {
+	return	strstr(file, "/lib/libc-") ||
+		strstr(file, "/lib32/libc-") ||
+		strstr(file, "/lib64/libc-");
+}
+
 static void* libc_base(pid_t target) {
 	char maps_path[32];
 	FILE *fmaps;
@@ -58,10 +64,10 @@ static void* libc_base(pid_t target) {
 		file[0] = 0;
 
 		if (sscanf(line, "%zx-%zx %4s %*x %*s %*u %s", &start, &end, perms, file) == 4) {
-			if (strlen(file) && !strstr(file, "/lib/libc-"))
-				continue;
-			base = (void*)start;
-			break;
+			if (is_libc(file)) {
+				base = (void*)start;
+				break;
+			}
 		}
 	}
 
