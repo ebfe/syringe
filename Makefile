@@ -3,6 +3,7 @@ CC = clang
 CFLAGS ?= -g
 CFLAGS += -std=c99 -pedantic -pipe
 CFLAGS += -Wall -Wextra
+CFLAGS += -D_DEFAULT_SOURCE
 
 LDFLAGS = -ldl
 

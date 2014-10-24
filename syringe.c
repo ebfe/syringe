@@ -1,5 +1,3 @@
-#define _BSD_SOURCE /* realpath() */
-#define _GNU_SOURCE /* getline() */
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
